@@ -59,7 +59,7 @@ $Script:Team           = 'members'
 $Script:ArtifactsRepo  = 'merlinguild/artifacts'
 $Script:Scopes         = 'read:org repo'
 $Script:AssetPattern   = '*x64*.msi'
-$Script:TokenDir       = Join-Path $env:LOCALAPPDATA '.merlinguild'
+$Script:TokenDir       = Join-Path $env:USERPROFILE '.merlinguild'
 $Script:TokenPath      = Join-Path $Script:TokenDir 'token'
 $Script:UserAgent      = 'merlinguild-installer'
 
@@ -164,10 +164,37 @@ function Wait-ForDeviceToken {
   throw 'Timed out waiting for you to authorise in the browser.'
 }
 
+function Read-SavedToken {
+  if (-not (Test-Path -LiteralPath $Script:TokenPath)) { return $null }
+  $raw = [IO.File]::ReadAllText($Script:TokenPath).Trim()
+  if (-not $raw) { return $null }
+  return $raw
+}
+
+function Test-Token {
+  param([Parameter(Mandatory)] [string] $Token)
+  try {
+    $null = Invoke-GitHubApi -Method GET -Uri 'https://api.github.com/user' `
+      -Headers @{ Authorization = "Bearer $Token" }
+    return $true
+  } catch {
+    return $false
+  }
+}
+
 function Get-GitHubToken {
   if ($Script:Token) {
     Write-Info 'Using token from $env:MG_TOKEN / -Token parameter.'
     return $Script:Token
+  }
+  $saved = Read-SavedToken
+  if ($saved) {
+    Write-Info "Found saved token at $Script:TokenPath. Validating..."
+    if (Test-Token -Token $saved) {
+      Write-Ok 'Saved token is valid. Skipping device-flow authorisation.'
+      return $saved
+    }
+    Write-Warn2 'Saved token is invalid or expired. Falling back to device-flow authorisation.'
   }
   $dc = Request-DeviceCode
   Write-Host ''
