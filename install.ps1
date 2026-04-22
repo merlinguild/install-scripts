@@ -60,7 +60,7 @@ $Script:ArtifactsRepo  = 'merlinguild/artifacts'
 $Script:Scopes         = 'read:org repo'
 $Script:AssetPattern   = '*x64*.msi'
 $Script:TokenDir       = Join-Path $env:USERPROFILE '.merlinguild'
-$Script:TokenPath      = Join-Path $Script:TokenDir 'token'
+$Script:TokenPath      = Join-Path $Script:TokenDir '.auth-token'
 $Script:UserAgent      = 'merlinguild-installer'
 
 $ErrorActionPreference = 'Stop'
